@@ -5,4 +5,9 @@
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    /* Růžová paleta pro toilet app */
+    --color-toilet-pink: #f472b6;
+    --color-toilet-rose: #fb7185;
+    --color-toilet-light: #fdf2f8;
+    --color-toilet-dark: #9d174d;
 }

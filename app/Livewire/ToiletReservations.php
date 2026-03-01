@@ -21,30 +21,86 @@ class ToiletReservations extends Component
         $today = now()->format('Y-m-d');
         $this->slot_date = $today;
         $this->slot_time = $this->nextSlotTime();
+        $this->suggestToilet();
+    }
+
+    public function updatedSlotDate(): void
+    {
+        $this->suggestToilet();
+    }
+
+    public function updatedSlotTime(): void
+    {
+        $this->suggestToilet();
+    }
+
+    /** Navrhne první volný záchod pro zvolený datum a čas. */
+    protected function suggestToilet(): void
+    {
+        $suggested = $this->getSuggestedToilet();
+        if ($suggested !== null) {
+            $this->toilet = $suggested;
+        }
+    }
+
+    /** Vrátí první volný záchod (A, B, C) pro aktuální slot_date + slot_time, nebo null pokud jsou všechny obsazené. */
+    public function getSuggestedToilet(): ?string
+    {
+        if (! $this->slot_date || ! $this->slot_time) {
+            return null;
+        }
+        $slotAt = Carbon::parse($this->slot_date . ' ' . $this->slot_time);
+        foreach (ToiletReservation::TOILETS as $toilet) {
+            $occupied = ToiletReservation::where('toilet', $toilet)
+                ->where('slot_at', $slotAt)
+                ->exists();
+            if (! $occupied) {
+                return $toilet;
+            }
+        }
+        return null;
+    }
+
+    /** Pro view: které záchody jsou ve zvoleném čase volné. */
+    public function getFreeToiletsProperty(): array
+    {
+        if (! $this->slot_date || ! $this->slot_time) {
+            return ToiletReservation::TOILETS;
+        }
+        $slotAt = Carbon::parse($this->slot_date . ' ' . $this->slot_time);
+        $free = [];
+        foreach (ToiletReservation::TOILETS as $toilet) {
+            $occupied = ToiletReservation::where('toilet', $toilet)
+                ->where('slot_at', $slotAt)
+                ->exists();
+            if (! $occupied) {
+                $free[] = $toilet;
+            }
+        }
+        return $free;
     }
 
     public function nextSlotTime(): string
     {
-        $now = now();
-        $minute = (int) ceil($now->minute / 15) * 15;
-        if ($minute >= 60) {
-            $now = $now->copy()->addHour()->setMinute(0);
-        } else {
-            $now = $now->copy()->setMinute($minute)->setSecond(0);
+        $slots = $this->getTimeSlots();
+        $now = now()->format('H:i');
+        foreach ($slots as $slot) {
+            if ($slot >= $now) {
+                return $slot;
+            }
         }
-        $time = $now->format('H:i');
-        if ($time === '24:00' || $now->hour >= 24) {
-            return '06:00';
-        }
-        return $time;
+        return $slots[0];
     }
 
     public function getTimeSlots(): array
     {
         $slots = [];
-        for ($h = 6; $h < 24; $h++) {
+        foreach ([6, 7] as $h) {
             for ($m = 0; $m < 60; $m += 15) {
-                $slots[] = sprintf('%02d:%02d', $h, $m);
+                $time = sprintf('%02d:%02d', $h, $m);
+                if ($time <= '07:30') {
+                    $slots[] = $time;
+                }
             }
         }
         return $slots;
@@ -125,6 +181,7 @@ class ToiletReservations extends Component
             'reservations' => $this->reservations,
             'grid' => $this->grid,
             'timeSlots' => $this->getTimeSlots(),
+            'freeToilets' => $this->freeToilets,
         ])->layout('layouts.app', ['title' => 'Rezervace záchodů']);
     }
 }
