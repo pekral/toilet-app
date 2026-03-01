@@ -1,0 +1,15 @@
+{
+    "agents": [
+        "junie",
+        "cursor"
+    ],
+    "guidelines": true,
+    "herd_mcp": true,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "sail": false,
+    "skills": [
+        "livewire-development",
+        "pest-testing"
+    ]
+}
